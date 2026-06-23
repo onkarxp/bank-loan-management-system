@@ -11,15 +11,21 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.BankLoanManagement.entities.LoanApplication;
 import com.BankLoanManagement.entities.Repayments;
 import com.BankLoanManagement.exceptions.ResourceNotFoundException;
+import com.BankLoanManagement.repositories.LoanApplicationRepo;
 import com.BankLoanManagement.repositories.RepaymentsRepo;
 
 @Service
 public class RepaymentsService {
+	
+	@Autowired
+	private LoanApplicationRepo loanApplicationRepo;
 	
 	private RepaymentsRepo repaymentRepo;
 	
@@ -30,7 +36,7 @@ public class RepaymentsService {
 	}
 	
 
-	// HELPER METHOD: Extracts the repeated penalty math so it's only written once
+	// HELPER METHOD- Extracts the repated penalty math so it's only written once
 
 	private void applyLateFeeIfApplicable(Repayments emi, LocalDate today) {
 		if(emi.getPaymentStatus() == Repayments.PaymentStatus.PENDING && today.isAfter(emi.getDueDate())) {	            
@@ -61,8 +67,6 @@ public class RepaymentsService {
 	    LocalDate today = LocalDate.now();
 	    
 	    for(Repayments emi : schedule) {
-	        // THE PENALTY LOGIC: Previously logic was dumb. Now it is corrected
-	        // Inflate the object in memory so the frontend displays it
 	        applyLateFeeIfApplicable(emi, today);
 	    }
 	    return schedule;
@@ -255,4 +259,32 @@ public class RepaymentsService {
 	    
 	    return finalReport;
 	}
-}
+	
+	public Page<LoanApplication> getCustomerApplications(Integer customerId, Pageable pageable){
+		return loanApplicationRepo.findByCustomer_CustomerId(customerId,pageable);
+	}
+	
+	// NEW: Admin method to fetch ALL repayments across the entire bank
+		public Page<Repayments> getAllRepaymentsForAdmin(Pageable pageable) {
+			// findAll is built into JpaRepository automatically!
+			return repaymentRepo.findAll(pageable); 
+		}
+		
+		
+	//NEW ADMIN METHOD
+		//Finding the emis by application ID
+		public Repayments getRepaymentByIdForSearch(Integer repaymentId) {
+	        Optional<Repayments> repayment = repaymentRepo.findById(repaymentId);
+	        
+	        // Return the repayment if found, or null if it doesn't exist.
+	        // (Your controller will handle the null to send a 404/Empty response)
+	        return repayment.orElse(null);
+	    }
+		
+		
+	    public Page<Repayments> findByApplicationId(Long applicationId, Pageable pageable) {
+	        // This connects the Controller to the Repository method we just added
+	        return repaymentRepo.findByLoanApplication_ApplicationId(applicationId, pageable);
+	    }
+	}
+

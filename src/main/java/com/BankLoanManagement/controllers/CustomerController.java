@@ -1,9 +1,16 @@
 package com.BankLoanManagement.controllers;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,54 +20,81 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.BankLoanManagement.dto.LoginDto;
 import com.BankLoanManagement.entities.Customer;
+import com.BankLoanManagement.repositories.CustomerRepo;
 import com.BankLoanManagement.services.CustomerService;
- 
 
-@RestController // Tells spring that this class receives the web requests and automatically converts the returned java data into json
-@RequestMapping("/customers") // Sets the base URL path. Every endpoint in this file will automatically start with "http://localhost:8091/customers".
+import jakarta.validation.Valid;
+ 
+@CrossOrigin(origins = "*") // Allows your HTML file to communicate with this controller
+@RestController 
+@RequestMapping("/customers") // setting the base URL path
 public class CustomerController {
  
  
+	@Autowired
+	private CustomerRepo custRepo;
+	
     private CustomerService customerService;
  
     public CustomerController(CustomerService customerService) {
         this.customerService = customerService;
     }
  
-    // STARTING TO WRITE ENDPOINTS
-    
-    // 1. Register a new customer
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> loginCustomer(@RequestBody com.BankLoanManagement.dto.LoginDto loginDto) {
+        Map<String, Object> response = new HashMap<>();
+
+        // 1. Hardcoded Admin Check
+        if ("admin@nexusbank.com".equals(loginDto.getEmail()) && "admin123".equals(loginDto.getPassword())) {
+            response.put("role", "ADMIN");
+            response.put("name", "Super Admin");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        // 2. Regular Customer Database Check
+        Customer loggedInCustomer = customerService.loginCustomer(loginDto.getEmail(), loginDto.getPassword());
+        
+        response.put("role", "CUSTOMER");
+        response.put("customerId", loggedInCustomer.getCustomerId());
+        response.put("name", loggedInCustomer.getName());
+        
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+  
+    // register a new customer
     @PostMapping
-    public ResponseEntity<Customer> registerCustomer(@RequestBody Customer customer) {
+    public ResponseEntity<Customer> registerCustomer(@Valid @RequestBody Customer customer) {
             return new ResponseEntity<>(customerService.registerCustomer(customer), HttpStatus.CREATED);
     }
+    
+    // getAllcustomer
+    @GetMapping("/getAllCustomers")
+    public ResponseEntity<List<Customer>> getAllCustomers(){
+    	List<Customer> listOfCustomers = customerService.getAllCustomers() ;
+    	return new ResponseEntity<>(listOfCustomers , HttpStatus.OK) ;
+    }
  
-    // 2. Fetch customer details based on ID
+    // get customer by ID
     @GetMapping("/{customerId}")
     public ResponseEntity<Customer> getCustomerDetails(@PathVariable Integer customerId) {
      	return new ResponseEntity<>(customerService.getCustomerDetails(customerId), HttpStatus.OK);
     }
-    // 3. GetAllcustomer
-    @GetMapping("/getAllCustomers")
-    public ResponseEntity<List<Customer>> getAllCustomers(){
-    	 List<Customer> l = customerService.getAllCustomers() ;
-    	 return new ResponseEntity<>(l , HttpStatus.OK) ;
-    }
- 
-    // 4. Update customer profile details
+    
+    // update customer profile details
     @PutMapping("/{customerId}")
     public ResponseEntity<Customer> updateCustomerProfile(@PathVariable Integer customerId, @RequestBody Customer updatedDetails) {
             return new ResponseEntity<>(customerService.updateCustomerProfile(customerId, updatedDetails), HttpStatus.OK);
     }
  
-    // 5. Fetch the current KYC verification status
+    // fetch the current KYC verification status
     @GetMapping("/{customerId}/kyc-status")
     public ResponseEntity<Customer.KycStatus> getKycStatus(@PathVariable Integer customerId) {
             return new ResponseEntity<>(customerService.getKycStatus(customerId), HttpStatus.OK);
     }
  
-    // 6. Verify or update the customer's KYC status 4/kyc-status?status=PENDING
+    // verify or update the customer's KYC status 4/kyc-status?status=PENDING (ADMIN)
     @PutMapping("/{customerId}/kyc-status")
     public ResponseEntity<Customer> updateKycStatus(
             @PathVariable Integer customerId,
@@ -69,17 +103,13 @@ public class CustomerController {
  
     }
     
+    @GetMapping("/paginated")
+    public Page<Customer> getPaginatedCustomers(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        return custRepo.findAll(pageable); // Assuming you are using JpaRepository
+    }
     
-    
-    
-//    @GetMapping("/email/{email}")
-//    public ResponseEntity<Customer> getCustomerByEmail(@PathVariable String email){
-//    	       return new ResponseEntity<>(customerService.getCustomerByEmail(email),HttpStatus.OK);
-//    }
-    
-    
-//    @GetMapping("/kyc-status/{status}")
-//    public ResponseEntity<List<Customer>> getCustomerByKycStatus(@PathVariable Customer.KycStatus status){
-//    	  return new ResponseEntity<>(customerService.getCustomerByKycStatus(status),HttpStatus.OK);
-//    }
 }

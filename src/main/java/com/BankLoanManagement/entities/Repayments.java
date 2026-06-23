@@ -19,9 +19,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 
-@Entity // Tells spring boot and hibernate that this java class represents a database table.
+@Entity 
 @Table(name="Repayments")
-@Data // Lombok annotation which generates all boilerplate code (getters and setters) at compile time
+@Data 
 @NoArgsConstructor
 @AllArgsConstructor
 public class Repayments {
@@ -43,12 +43,11 @@ public class Repayments {
 	@Column(nullable = false)
 	private LocalDate dueDate;
 	
-	// Renamed to 'amountDue' so Lombok generates 'setAmountDue()' to match our Service logic perfectly.
-	// Maximum no.of digits is 10 and decimal upto 2 places
+	
 	@Column(name="amountDue", nullable = false, precision = 10, scale = 2)
 	private BigDecimal amountDue; 
 	
-	// REMOVED 'nullable = false' because this MUST be blank until the customer actually makes a payment!
+
 	@Column(name="paymentDate") 
 	private LocalDate paymentDate;
 	
@@ -57,7 +56,7 @@ public class Repayments {
 		PENDING, COMPLETED
 	}
 	
-	// Tells hibernate to store enum text (e.g., "PENDING") instead of a numerical index
+	// Tells hibernate to store enum text (e.g "PENDING") instead of a numerical index
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private PaymentStatus paymentStatus;

@@ -36,7 +36,7 @@ import lombok.NoArgsConstructor;
 
 	    @OneToMany(mappedBy = "bank", cascade = CascadeType.ALL)
 	    @JsonManagedReference
-	    private List<LoanProducts> loanProducts;
+		public List<LoanProducts> loanProducts;
 	    
 	    
 	}
